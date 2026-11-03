@@ -1,0 +1,7 @@
+fastapi             # web framework that serves the APIs and static files - async-native for making concurrent HTTP calls to Tavily - auto-generates OpenAPI docs in /docs
+uvicorn[standard]   # server that runs the FastAPI app - supports auto-reload for development - [standard] includes uvloop and httptools for better performance
+httpx               # for making async calls to Nebius Token Factory and Tavily APIs
+pydantic            # data validation library for incoming and outgoing responses - usesd by FastAPI
+pydantic-settings   # for loading configuration from environment variables and .env files
+python-dotenv       # loading .env file into environment variables at runtime
+langfuse            # for tracing every agent step and API call - provides a dashboard for debugging and monitoring
