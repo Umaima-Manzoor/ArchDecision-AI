@@ -11,6 +11,8 @@ class Settings(BaseSettings):           # Application configuration loaded from 
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
+    nebius_model: str = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+    nebius_fallback_model: str = "Qwen/Qwen2.5-72B-Instruct"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}       # tells pydantic to load environment variables from .env file, otherwise BaseSettings will only read from the actual environment variables
 
