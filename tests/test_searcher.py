@@ -10,7 +10,6 @@ from app.config import settings
     reason="API keys not set",
 )
 
-@pytest.mark.asyncio
 async def test_planner_and_searcher_e2e() -> None:    # verify planner output feeds into searcher and returns real results
     planner_output = await plan("Compare DuckDB vs ClickHouse")
     results = await search(planner_output.sub_queries)
