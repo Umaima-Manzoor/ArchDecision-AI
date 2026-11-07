@@ -21,8 +21,7 @@ class SearchResult(BaseModel):      # One result from Tavily or other search sou
     url: str
     content: str
     published_date: str = ""
-    trust_tier: int = Field(default=0, ge=0, le=4)      # 4 = most credible, 0 = least credible, Tavily uses 1-4, but we allow 0 for other sources that don't have a trust tier
-
+    trust_tier: int = Field(default=3, ge=0, le=4)      # 0 = most credible (official docs), 4 = least credible (SEO farms), 3 = default for unrated sources
 
 class MatrixCell(BaseModel):        # One cell in the Architecture Trade-Off Matrix (Comparison Table) - contains the claim and its source for one axis and one technology
     axis: str
