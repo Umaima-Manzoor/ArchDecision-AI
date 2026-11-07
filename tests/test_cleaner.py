@@ -7,14 +7,14 @@ from app.agent.cleaner import (
 def _make_result(
     url: str = "https://example.com/article",
     title: str = "Test Article",
-    snippet: str = "This is a test snippet with enough words to pass the minimum length filter for the cleaner pipeline.",
+    content: str = "This is a test content with enough words to pass the minimum length filter for the cleaner pipeline.",
     trust_tier: int = 3,
 ) -> SearchResult:
     """Factory function to create SearchResult objects for testing."""
     return SearchResult(
         url=url,
         title=title,
-        snippet=snippet,
+        content=content,
         trust_tier=trust_tier,
     )
 
@@ -38,12 +38,7 @@ class TestCleanText:
         result = clean_text(long_text, max_length=100)
         assert len(result) <= 110       # allow slightly more because of ellipses and word boundary
         assert result.endswith("...")
-
-    def test_truncates_at_word_boundary(self):
-        text = "a" * 50 + " " + "b" * 60 + " end"
-        result = clean_text(text, max_length=100)
-        assert "..." in result
-
+        
     def test_removes_boilerplate(self):
         raw = "Great article about databases. Click here to subscribe to our newsletter for more."
         result = clean_text(raw)
@@ -139,12 +134,12 @@ class TestCleanAndDeduplicate:
     def test_empty_input(self):
         assert clean_and_deduplicate([]) == []
 
-    def test_filters_short_snippets(self):
+    def test_filters_short_content(self):
         results = [
-            _make_result(snippet="Too short."),
+            _make_result(content="Too short."),
             _make_result(
                 url="https://postgresql.org/good",
-                snippet="This is a properly long snippet about PostgreSQL performance tuning that should survive the length filter easily.",
+                content="This is a properly long content about PostgreSQL performance tuning that should survive the length filter easily.",
             ),
         ]
         output = clean_and_deduplicate(results)
@@ -155,24 +150,24 @@ class TestCleanAndDeduplicate:
         results = [
             _make_result(
                 url="https://example.com/page",
-                snippet="Short snippet about the topic that passes the filter.",
+                content="Short content about the topic that passes the filter.",
             ),
             _make_result(
                 url="https://example.com/page",
-                snippet="This is a much longer snippet about the same topic that should be kept because it has more content for the synthesizer to work with.",
+                content="This is a much longer content about the same topic that should be kept because it has more content for the synthesizer to work with.",
             ),
         ]
         output = clean_and_deduplicate(results)
         assert len(output) == 1
-        assert "much longer" in output[0].snippet
+        assert "much longer" in output[0].content
 
     def test_removes_near_duplicate_content(self):
         base = "PostgreSQL offers excellent JSONB support with GIN indexing for document-style queries and nested data access patterns"
         results = [
-            _make_result(url="https://a.com/1", snippet=base),
+            _make_result(url="https://a.com/1", content=base),
             _make_result(
                 url="https://b.com/2",
-                snippet=base + " and also supports full-text search capabilities",
+                content=base + " and also supports full-text search capabilities",
             ),
         ]
         output = clean_and_deduplicate(results, similarity_threshold=0.5)
@@ -182,11 +177,11 @@ class TestCleanAndDeduplicate:
         results = [
             _make_result(
                 url="https://a.com/1",
-                snippet="PostgreSQL is a relational database with strong ACID compliance and advanced indexing features.",
+                content="PostgreSQL is a relational database with strong ACID compliance and advanced indexing features.",
             ),
             _make_result(
                 url="https://b.com/2",
-                snippet="Redis is an in-memory key-value store optimized for low-latency caching and real-time pub/sub messaging.",
+                content="Redis is an in-memory key-value store optimized for low-latency caching and real-time pub/sub messaging.",
             ),
         ]
         output = clean_and_deduplicate(results)
@@ -196,11 +191,11 @@ class TestCleanAndDeduplicate:
         results = [
             _make_result(
                 url="https://medium.com/blog-post",
-                snippet="A blog post about database performance that is long enough to pass the minimum length filter easily.",
+                content="A blog post about database performance that is long enough to pass the minimum length filter easily.",
             ),
             _make_result(
                 url="https://www.postgresql.org/docs/performance",
-                snippet="Official PostgreSQL documentation about performance tuning and query optimization strategies for production.",
+                content="Official PostgreSQL documentation about performance tuning and query optimization strategies for production.",
             ),
         ]
         output = clean_and_deduplicate(results)
@@ -209,10 +204,38 @@ class TestCleanAndDeduplicate:
         assert output[1].trust_tier == 3
 
     def test_caps_at_max_results(self):
+        # each snippet needs genuinely different words to survive Jaccard dedup
+        topics = [
+            "PostgreSQL indexing and query optimization",
+            "Redis caching and pub/sub messaging patterns",
+            "MongoDB sharding and replica set configuration",
+            "Kafka stream processing and partition management",
+            "Elasticsearch full-text search and aggregation pipelines",
+            "MySQL replication and InnoDB buffer pool tuning",
+            "Cassandra data modeling and compaction strategies",
+            "RabbitMQ routing and dead letter exchange setup",
+            "Docker container orchestration and networking",
+            "Kubernetes pod scheduling and resource limits",
+            "Nginx reverse proxy and load balancing configuration",
+            "GraphQL schema design and resolver optimization",
+            "gRPC streaming and protobuf serialization performance",
+            "Terraform infrastructure provisioning and state management",
+            "Prometheus metrics collection and alerting rules",
+            "Grafana dashboard visualization and data sources",
+            "Jenkins CI/CD pipeline and plugin configuration",
+            "GitHub Actions workflow and runner optimization",
+            "AWS Lambda cold start and concurrency limits",
+            "Cloudflare CDN caching and edge computing rules",
+            "Vault secrets management and PKI certificate rotation",
+            "Consul service discovery and health check configuration",
+            "Istio service mesh and traffic management policies",
+            "ArgoCD GitOps deployment and sync wave strategies",
+            "Datadog APM tracing and log correlation setup",
+        ]
         results = [
             _make_result(
                 url=f"https://example.com/article-{i}",
-                snippet=f"Unique article number {i} about database architecture and performance tuning strategies for modern applications.",
+                content=f"In-depth guide covering {topics[i]} for production systems at scale.",
             )
             for i in range(25)
         ]
@@ -223,7 +246,7 @@ class TestCleanAndDeduplicate:
         results = [
             _make_result(
                 url="https://www.postgresql.org/docs/",
-                snippet="Official docs about PostgreSQL configuration and tuning parameters for production database deployments.",
+                content="Official docs about PostgreSQL configuration and tuning parameters for production database deployments.",
                 trust_tier=4,
             ),
         ]

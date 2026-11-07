@@ -18,8 +18,8 @@ from app.schemas import SearchResult
 
 logger = logging.getLogger(__name__)
 
-MAX_SNIPPET_LENGTH = 2000           # enough for LLM to extract context while staying in budget
-MIN_SNIPPET_LENGTH = 50
+MAX_CONTENT_LENGTH = 2000           # enough for LLM to extract context while staying in budget
+MIN_CONTENT_LENGTH = 50
 SIMILARITY_THRESHOLD = 0.6          # 60% similarity to be considered duplicates
 MAX_RESULTS_AFTER_CLEANING = 15     # 25 to 15 - enough to find conflicts
 
@@ -53,7 +53,7 @@ _BOILERPLATE_PATTERNS: list[re.Pattern] = [
 ]
 
 
-def clean_text(text: str, max_length: int = MAX_SNIPPET_LENGTH) -> str:     # Strip HTML tags, remove boilerplate, normalize whitespace, truncate.
+def clean_text(text: str, max_length: int = MAX_CONTENT_LENGTH) -> str:     # Strip HTML tags, remove boilerplate, normalize whitespace, truncate.
     if not text:
         return ""
 
@@ -76,9 +76,9 @@ def clean_text(text: str, max_length: int = MAX_SNIPPET_LENGTH) -> str:     # St
 def assign_trust_tier(url: str) -> int:
     """Assign a trust tier (0-4) based on the URL's domain.
     Tier logic (checked in order):
-      1. Exact domain match against TIER_0 / TIER_1 / TIER_2 / TIER_4 sets
-      2. Subdomain prefix match (docs.*, developer.*, learn.*) -> Tier 0
-      3. Known blog platforms (medium.com, dev.to, hashnode.dev) -> Tier 3
+      1. Exact domain match against TIER_0 / TIER_1 / TIER_2 / TIER_3 / TIER_4 sets
+      2. Subdomain suffix match for TIER_0, TIER_1, TIER_3 (e.g. "docs.postgresql.org")
+      3. Subdomain prefix match (docs.*, developer.*, learn.*) -> Tier 0
       4. Everything else -> Tier 3 (unknown but not penalized)
     """
     if not url:
@@ -121,12 +121,6 @@ def assign_trust_tier(url: str) -> int:
     for prefix in TIER_0_PREFIXES:
         if hostname.startswith(prefix):
             return 0
-
-    # Known blog platforms -> Tier 3
-    blog_platforms = {"medium.com", "dev.to", "hashnode.dev", "substack.com"}
-    for platform in blog_platforms:
-        if hostname == platform or hostname.endswith("." + platform):
-            return 3
 
     # Default: unknown domain, moderate trust
     return 3
@@ -172,11 +166,11 @@ def clean_and_deduplicate(results: list[SearchResult], similarity_threshold: flo
 
     Pipeline steps:
       1. Clean text (strip HTML, normalize, truncate)
-      2. Filter out results with content shorter than MIN_SNIPPET_LENGTH
+      2. Filter out results with content shorter than MIN_CONTENT_LENGTH
       3. Assign trust tiers based on domain analysis
-      4. Remove exact-URL duplicates (keep the longer snippet)
+      4. Remove exact-URL duplicates (keep the longer content)
       5. Remove near-duplicate content (Jaccard > threshold)
-      6. Sort by trust tier (ascending = best first)
+      6. Sort by trust tier (ascending = best first, 0 = most credible)
       7. Cap at max_results
     """
     if not results:
@@ -189,17 +183,17 @@ def clean_and_deduplicate(results: list[SearchResult], similarity_threshold: flo
     # clean text and filter short results
     cleaned: list[SearchResult] = []
     for r in results:
-        clean_snippet = clean_text(r.snippet)
-        if len(clean_snippet) < MIN_SNIPPET_LENGTH:
-            logger.debug("Filtered out short result (%d chars): %s", len(clean_snippet), r.url[:80])
+        clean_content = clean_text(r.content)
+        if len(clean_content) < MIN_CONTENT_LENGTH:
+            logger.debug("Filtered out short result (%d chars): %s", len(clean_content), r.url[:80])
             continue
 
-        # Create a new SearchResult with the cleaned snippet and trust tier
+        # Create a new SearchResult with the cleaned content and trust tier
         tier = assign_trust_tier(r.url)
         cleaned.append(         # pydantic is immutable by default, so we create a new instance with updated fields instead of modifying in place
             r.model_copy(
                 update={
-                    "snippet": clean_snippet,
+                    "content": clean_content,
                     "trust_tier": tier,
                 }
             )
@@ -215,9 +209,9 @@ def clean_and_deduplicate(results: list[SearchResult], similarity_threshold: flo
     for r in cleaned:
         norm_url = _normalize_url(r.url)
         if norm_url in url_map:
-            # Keep the result with the longer snippet
+            # Keep the result with the longer content
             existing = url_map[norm_url]
-            if len(r.snippet) > len(existing.snippet):
+            if len(r.content) > len(existing.content):
                 url_map[norm_url] = r
         else:
             url_map[norm_url] = r
@@ -230,7 +224,7 @@ def clean_and_deduplicate(results: list[SearchResult], similarity_threshold: flo
     for r in url_deduped:
         is_duplicate = False
         for kept in content_deduped:
-            sim = jaccard_similarity(r.snippet, kept.snippet)
+            sim = jaccard_similarity(r.content, kept.content)
             if sim >= similarity_threshold:
                 logger.debug(
                     "Near-duplicate removed (sim=%.2f): %s vs %s",
@@ -243,8 +237,8 @@ def clean_and_deduplicate(results: list[SearchResult], similarity_threshold: flo
 
     logger.info( "After content dedup: %d results (removed %d).", len(content_deduped), len(url_deduped) - len(content_deduped))
 
-    # sort by trust tier (0 first) then by snippet length (longer first)
-    content_deduped.sort(key=lambda r: (r.trust_tier, -len(r.snippet)))
+    # sort by trust tier (0 first = most credible) then by content length (longer first)
+    content_deduped.sort(key=lambda r: (r.trust_tier, -len(r.content)))
     final = content_deduped[:max_results]       # cap at max_results
     logger.info( "Cleaner complete: %d -> %d results.", original_count, len(final))
 
