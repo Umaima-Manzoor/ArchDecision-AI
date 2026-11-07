@@ -8,7 +8,7 @@ from app.schemas import PlannerOutput, SubQuery, SearchResult
 from app.agent.synthesizer import _format_sources, _build_messages
 
 def _make_planner(tech_a: str = "PostgreSQL", tech_b: str = "MySQL", axes: list[str] = None) -> PlannerOutput:      # Factory for PlannerOutput test objects
-    if axes is None:
+    if axes is None:        # default arguments are evaluated once during function definition, not at every call, so the rest would have been appended (duplicate axes)
         axes = ["Performance", "Scalability"]
     sub_queries = [SubQuery(axis=a, query=f"{tech_a} vs {tech_b} {a}") for a in axes]
     return PlannerOutput(
