@@ -158,7 +158,9 @@ async def synthesize_matrix(planner_output: PlannerOutput, sources: list[SearchR
                 raise       # auth errors won't be fixed by retrying
         except (json.JSONDecodeError, KeyError, ValueError) as e:       # KeyError if "choices" or "message" is missing, ValueError if Pydantic validation fails
             logger.warning("Synthesizer parse error on attempt %d: %s", attempt, e)
+        except httpx.RequestError as e:     # catches DNS failures, refused connections timeouts and other network errors
+            logger.warning("Synthesizer network error on attempt %d: %s", attempt, str(e)[:100])
         except Exception as e:
-            logger.warning("Synthesizer error on attempt %d: %s", attempt, e)
+            logger.warning("Synthesizer unexpected error on attempt %d: %s", attempt, e)
 
     raise RuntimeError(f"Synthesizer failed after {MAX_RETRIES} attempts with all models.")
