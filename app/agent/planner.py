@@ -84,7 +84,7 @@ async def plan(question: str) -> PlannerOutput:     # Decompose a user question 
     last_error: Exception | None = None     # final error msg has the most recent error for debugging if all attempts fail
 
     for attempt in range(1, MAX_RETRIES + 1):
-        model = settings.nebius_model if attempt < MAX_RETRIES else settings.nebius_fallback_model      # on first 2 tries use primary model, on last try use fallback model (if primary model is down or rate limited)
+        model = settings.nebius_model if attempt == 1 else settings.nebius_fallback_model      # on first 2 tries use primary model, on last try use fallback model (if primary model is down or rate limited)
         logger.info("Planner attempt %d/%d using model %s", attempt, MAX_RETRIES, model)
 
         try:
