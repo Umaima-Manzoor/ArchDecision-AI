@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 90        # synthesizer needs more time than planner (larger prompt + response)
 MAX_RETRIES = 3
+NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 
 
 def _format_sources(sources: list[SearchResult]) -> str:
@@ -116,7 +117,7 @@ async def synthesize_matrix(planner_output: PlannerOutput, sources: list[SearchR
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT_SECONDS) as client:
                 response = await client.post(
-                    f"{settings.nebius_base_url}/chat/completions",
+                    f"{NEBIUS_BASE_URL}/chat/completions",
                     headers={
                         "Authorization": f"Bearer {settings.nebius_api_key}",
                         "Content-Type": "application/json",

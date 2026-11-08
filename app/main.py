@@ -10,6 +10,11 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.schemas import AgentResponse, QueryRequest
+from app.agent.planner import plan                      # Nebius decomposes the question
+from app.agent.searcher import search                   # Tavily calls for each sub-query
+from app.agent.cleaner import clean_and_deduplicate     # cleaning, deduplicating, tiers
+from app.agent.synthesizer import synthesize_matrix     # Nebius build the matrix from sources
+from app.agent.tracer import Tracer                     # logging each pipeline step 
 
 logging.basicConfig(
     level=logging.INFO,     # minimum level to log (DEBUG, INFO, WARNING, ERROR, CRITICAL)  - everything other than DEUG is logged
@@ -64,18 +69,62 @@ async def root() -> FileResponse:           # an HTTP response that returns a fi
 @app.post("/api/research", response_model=AgentResponse)        # when someone sends a POST request to /api/research, run this function and return an AgentResponse schema
 async def research(request: QueryRequest) -> AgentResponse:     # Run the full research agent pipeline
     logger.info("Research request received: %s", request.question[:80])
+    tracer = Tracer()           # new tracer for each request
     start_time = time.time()
 
-    # TODO: Wire up the four-step agent pipeline
-    # Step 1: planner.plan(request.question)
-    # Step 2: searcher.search(planner_output.sub_queries)
-    # Step 3: cleaner.clean(search_results)
-    # Step 4: synthesizer.synthesize(cleaned_results)
+    tracer.log("received", f"Question: {request.question[:80]}")
 
-    latency = time.time() - start_time
-    logger.info("Pipeline not yet implemented. Latency so far: %.2fs", latency)     # 501 Not Impemented error
+    # Step 1: Planner decomposes question into axes and sub-queries
+    tracer.log("planning", "Decomposing question into research axes and sub-queries")
+    try:
+        planner_output = await plan(request.question)
+    except Exception as e:
+        tracer.log("error", f"Planner failed: {str(e)[:200]}")   # after all retries fail
+        raise HTTPException(status_code=502, detail=f"Planner failed: {e}")     # 502 = Bad Gateway
+    tracer.log(
+        "planned",
+        f"{planner_output.technology_a} vs {planner_output.technology_b}, "
+        f"{len(planner_output.axes)} axes, {len(planner_output.sub_queries)} sub-queries",
+    )
 
-    raise HTTPException(
-        status_code=501,
-        detail="Agent pipeline not yet wired. Build steps 1 through 4 first.",
+    # Step 2: Searcher fetches evidence from Tavily for each sub-query
+    tracer.log("searching", f"Running {len(planner_output.sub_queries)} Tavily searches")
+    try:
+        raw_results = await search(planner_output.sub_queries)
+    except Exception as e:
+        tracer.log("error", f"Searcher failed: {str(e)[:200]}")
+        raise HTTPException(status_code=502, detail=f"Searcher failed: {e}")
+    tracer.log("searched", f"Retrieved {len(raw_results)} raw results from Tavily")
+
+    # Step 3: Cleaner deduplicates results and assigns trust tiers
+    tracer.log("cleaning", "Deduplicating results and assigning trust tiers")
+    cleaned = clean_and_deduplicate(raw_results)        # no await because this is synchronous (pure Python, no network calls)
+    tracer.log("cleaned", f"{len(cleaned)} results after cleaning (from {len(raw_results)} raw)")
+
+    if not cleaned:
+        tracer.log("warning", "No sources survived cleaning. Matrix will have insufficient data.")
+
+    # Step 4: Synthesizer builds the trade-off matrix via LLM
+    tracer.log("synthesizing", "Building trade-off matrix with LLM")
+    try:
+        matrix = await synthesize_matrix(planner_output, cleaned)
+    except Exception as e:
+        tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
+        raise HTTPException(status_code=502, detail=f"Synthesizer failed: {e}")
+    tracer.log(
+        "synthesized",
+        f"{len(matrix.cells)} cells, {len(matrix.conflicts)} conflicts, "
+        f"{len(matrix.insufficient_data)} insufficient axes",
+    )
+
+    # Step 5: Build final response with trace and latency
+    latency = round(time.time() - start_time, 2)
+    tracer.log("complete", f"Pipeline finished in {latency}s")
+    logger.info("Pipeline complete in %.2fs: %d sources, %d cells", latency, len(cleaned), len(matrix.cells))
+
+    return AgentResponse(
+        matrix=matrix,
+        trace=tracer.get_steps(),
+        total_sources=len(cleaned),
+        latency_seconds=latency,
     )
