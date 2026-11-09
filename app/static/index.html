@@ -1,17 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ArchDecision AI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compare software technologies with sourced, verifiable architecture trade-off matrices.">
+  <title>ArchDecision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">       <!-- tells browser to start connecting to Google Fonts early - saves time-->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center">
-    <div class="text-center">
-        <h1 class="text-4xl font-bold mb-4">ArchDecision AI</h1>
-        <p class="text-gray-400 mb-2">Research agent for architecture trade-off analysis</p>
-        <p class="text-gray-500 text-sm">Agent pipeline not yet connected. Building in progress.</p>
-        <a href="/health" class="inline-block mt-6 text-blue-400 hover:underline">Health Check</a>
+<body>
+  <header>
+    <div class="container">
+      <h1>ArchDecision</h1>
+      <p class="tagline">Compare technologies with sourced, verifiable evidence</p>
     </div>
+  </header>
+
+  <main class="container">
+    <form id="search-form">
+      <label for="question">What do you want to compare?</label>
+      <div class="input-row">
+        <input
+          type="text"
+          id="question"
+          name="question"
+          placeholder="e.g. Compare PostgreSQL vs MongoDB for real-time analytics"
+          minlength="10"
+          maxlength="500"
+          required
+        >
+        <button type="submit" id="submit-btn">Analyze</button>
+      </div>
+    </form>
+
+    <section id="loading" class="state hidden">
+      <p class="loading-text">Researching your comparison. This typically takes 15 to 30 seconds.</p>
+    </section>
+
+    <section id="error" class="state hidden">
+      <div class="error-box">
+        <strong>Something went wrong</strong>
+        <p id="error-message"></p>
+        <button type="button" onclick="resetForm()">Try again</button>
+      </div>
+    </section>
+
+    <section id="results" class="state hidden">
+      <div id="summary-bar"></div>
+      <div id="matrix-container"></div>
+      <div id="conflicts-container"></div>
+      <div id="insufficient-container"></div>
+      <details id="trace-section">
+        <summary>Execution trace</summary>
+        <div id="trace-list" class="trace-list"></div>
+      </details>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,369 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --border: #ddd9d0;
+  --text: #1c1c1e;
+  --text-secondary: #6b6966;
+  --accent: #0a8754;
+  --accent-hover: #076b42;
+  --accent-light: #e6f5ee;
+  --h-bg: #e6f5ee;
+  --h-text: #0a8754;
+  --m-bg: #fef6e6;
+  --m-text: #8b6914;
+  --l-bg: #fde8e8;
+  --l-text: #a83228;
+  --conflict-bg: #fef6e6;
+  --conflict-border: #d4a017;
+  --error-bg: #fde8e8;
+  --error-border: #c0392b;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', Consolas, monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+header {
+  padding: 40px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.tagline {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+#search-form label {
+  display: block;
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+
+.input-row input:focus {
+  border-color: var(--accent);
+}
+
+.input-row button {
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;      /* prevents button text from wrapping to another line*/
+}
+
+.input-row button:hover {
+  background: var(--accent-hover);
+}
+
+.input-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hidden {               /* completely removing element from layout */
+  display: none;
+}
+
+.state {                /* loading - error - results */
+  margin-top: 32px;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.error-box {
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  padding: 16px 20px;
+}
+
+.error-box strong {         /* title - sits on its own line */
+  display: block;
+  margin-bottom: 4px;
+}
+
+.error-box p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.error-box button {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: baseline;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+
+.summary-bar h2 {
+  font-size: 18px;
+  font-weight: 600;
+  flex-basis: 100%;         /* title - in its own row */
+}
+
+.summary-stat {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.matrix-table {
+  width: 100%;
+  border-collapse: collapse;            /* removes double borders between cells */
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;                     /* clips corners to match border-radius */ 
+  margin-bottom: 24px;
+}
+
+.matrix-table th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.matrix-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  font-size: 14px;
+}
+
+.matrix-table tr:last-child td {        
+  border-bottom: none;              /* so there is no double line at the table edge */
+}
+
+.axis-name {
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.claim-text {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.claim-meta {               /* for badges and source link */
+  display: flex;
+  flex-wrap: wrap;          /* for stacking */
+  gap: 6px;
+  align-items: center;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+.badge-h { background: var(--h-bg); color: var(--h-text); }
+.badge-m { background: var(--m-bg); color: var(--m-text); }
+.badge-l { background: var(--l-bg); color: var(--l-text); }
+
+.badge-fact { background: var(--h-bg); color: var(--h-text); }
+.badge-inference { background: var(--m-bg); color: var(--m-text); }
+.badge-unverified { background: var(--l-bg); color: var(--l-text); }
+
+.source-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;            /* prevents long urls from overflowing the table cell*/
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
+.conflict-box {
+  background: var(--conflict-bg);
+  border: 1px solid var(--conflict-border);
+  border-radius: 6px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+
+.conflict-box strong {
+  font-size: 13px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.conflict-box p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.conflict-sources {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.section-label {            /* for "conflict detected" and "insufficient data"*/
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.insufficient-list {            /* bullet points */
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-left: 20px;
+  margin-bottom: 24px;
+}
+
+details {                   /*for trace (can be collapsed) */
+  margin-top: 24px;
+  margin-bottom: 48px;
+}
+
+details summary {
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 8px 0;
+}
+
+.trace-list {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+
+.trace-step {
+  display: flex;
+  gap: 12px;
+}
+
+.trace-time {
+  color: var(--border);
+  flex-shrink: 0;
+}
+
+.trace-label {
+  font-weight: 500;
+  color: var(--text);
+  min-width: 90px;
+}
+
+@media (max-width: 640px) {
+  .input-row {
+    flex-direction: column;
+  }
+
+  .matrix-table,
+  .matrix-table thead,
+  .matrix-table tbody,
+  .matrix-table th,
+  .matrix-table td,
+  .matrix-table tr {
+    display: block;
+  }
+
+  .matrix-table thead {
+    position: absolute;         /* hides the table headers visually but keeps them in the DOM for screen readers*/
+    left: -9999px;
+  }
+
+  .matrix-table tr {
+    border-bottom: 2px solid var(--border);
+    padding: 12px 0;
+  }
+
+  .matrix-table td {
+    border-bottom: none;
+    padding: 8px 16px;
+  }
+
+  .matrix-table td::before {
+    content: attr(data-label);      /* for fake headers for each cell */
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .axis-name {
+    white-space: normal;        /*allow wrapping on smaller screens */
+  }
+}
