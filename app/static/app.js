@@ -77,11 +77,20 @@ function handleStreamEvent(data) {
 function renderResults(data) {
   const m = data.matrix;
 
+  //b uild token usage HTML if available
+  let tokenHTML = "";
+  if (data.token_usage && data.token_usage.total_tokens > 0) {
+    const tokens = data.token_usage.total_tokens.toLocaleString();      // adds commas: 2450 -> "2,450"
+    const cost = data.token_usage.estimated_cost_usd.toFixed(4);        // 4 decimal places: 0.0012
+    tokenHTML = `<span class="summary-stat">~${tokens} tokens</span><span class="summary-stat cost-stat">~$${cost}</span>`;
+  }
+
   summaryBar.innerHTML = `
     <h2>${esc(m.technology_a)} vs ${esc(m.technology_b)}</h2>
     <span class="summary-stat">${data.total_sources} sources</span>
     <span class="summary-stat">${m.cells.length} cells</span>
     <span class="summary-stat">${data.latency_seconds}s</span>
+    ${tokenHTML}
   `;
 
   const axes = [...new Set(m.cells.map((c) => c.axis))];        // creates array of axis - Set: no duplicates - ... takes them out of set and put them in array (since func like .map() and .filter() can't be used for Set)

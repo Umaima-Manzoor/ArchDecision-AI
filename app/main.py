@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, StreamingResponse   # sends data in 
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.schemas import AgentResponse, QueryRequest
+from app.schemas import AgentResponse, QueryRequest, TokenUsage
 from app.agent.planner import plan                      # Nebius decomposes the question
 from app.agent.searcher import search                   # Tavily calls for each sub-query
 from app.agent.cleaner import clean_and_deduplicate     # cleaning, deduplicating, tiers
@@ -24,6 +24,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+# Approximate Nebius Token Factory pricing per 1M tokens for Qwen3-235B (update if pricing changes)
+INPUT_COST_PER_M = 0.20         # $0.20 per million input tokens
+OUTPUT_COST_PER_M = 0.60        # $0.60 per million output tokens (output costs ~3x more than input)
 
 
 @asynccontextmanager        # before and after section separated by yield
@@ -80,7 +84,7 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
     # Step 1: Planner decomposes question into axes and sub-queries
     tracer.log("planning", "Decomposing question into research axes and sub-queries")
     try:
-        planner_output = await plan(request.question)
+        planner_output = await plan(request.question, tracer=tracer)
     except Exception as e:
         tracer.log("error", f"Planner failed: {str(e)[:200]}")   # after all retries fail
         raise HTTPException(status_code=502, detail=f"Planner failed: {e}")     # 502 = Bad Gateway
@@ -110,7 +114,7 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
     # Step 4: Synthesizer builds the trade-off matrix via LLM
     tracer.log("synthesizing", "Building trade-off matrix with LLM")
     try:
-        matrix = await synthesize_matrix(planner_output, cleaned)
+        matrix = await synthesize_matrix(planner_output, cleaned, tracer=tracer)
     except Exception as e:
         tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
         raise HTTPException(status_code=502, detail=f"Synthesizer failed: {e}")
@@ -125,11 +129,21 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
     tracer.log("complete", f"Pipeline finished in {latency}s")
     logger.info("Pipeline complete in %.2fs: %d sources, %d cells", latency, len(cleaned), len(matrix.cells))
 
+    # calculate token usage and estimated cost
+    total_tokens = tracer.total_prompt_tokens + tracer.total_completion_tokens
+    estimated_cost = (tracer.total_prompt_tokens * INPUT_COST_PER_M + tracer.total_completion_tokens * OUTPUT_COST_PER_M) / 1_000_000
+
     return AgentResponse(
         matrix=matrix,
         trace=tracer.get_steps(),
         total_sources=len(cleaned),
         latency_seconds=latency,
+        token_usage=TokenUsage(
+            prompt_tokens=tracer.total_prompt_tokens,
+            completion_tokens=tracer.total_completion_tokens,
+            total_tokens=total_tokens,
+            estimated_cost_usd=round(estimated_cost, 6),
+        ),
     )
 
 @app.get("/api/research/stream")      # SSE streaming endpoint for live trace updates
@@ -146,7 +160,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
         tracer.log("planning", "Decomposing question into research axes and sub-queries")
         yield format_sse({"step": "planning", "detail": "Decomposing question into research axes"})
         try:
-            planner_output = await plan(question)
+            planner_output = await plan(question, tracer=tracer)   
         except Exception as e:
             tracer.log("error", f"Planner failed: {str(e)[:200]}")
             yield format_sse({"step": "error", "detail": f"Planner failed: {e}"})
@@ -185,7 +199,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
         tracer.log("synthesizing", "Building trade-off matrix with LLM")
         yield format_sse({"step": "synthesizing", "detail": "Building trade-off matrix with LLM"})
         try:
-            matrix = await synthesize_matrix(planner_output, cleaned)
+            matrix = await synthesize_matrix(planner_output, cleaned, tracer=tracer)
         except Exception as e:
             tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
             yield format_sse({"step": "error", "detail": f"Synthesizer failed: {e}"})
@@ -200,16 +214,27 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
         latency = round(time.time() - start_time, 2)
         tracer.log("complete", f"Pipeline finished in {latency}s")
         logger.info("Pipeline complete in %.2fs: %d sources, %d cells", latency, len(cleaned), len(matrix.cells))
+
+        # calculate token usage and estimated cost
+        total_tokens = tracer.total_prompt_tokens + tracer.total_completion_tokens
+        estimated_cost = (tracer.total_prompt_tokens * INPUT_COST_PER_M + tracer.total_completion_tokens * OUTPUT_COST_PER_M) / 1_000_000
+
         response = AgentResponse(
             matrix=matrix,
             trace=tracer.get_steps(),
             total_sources=len(cleaned),
             latency_seconds=latency,
+            token_usage=TokenUsage(      
+                prompt_tokens=tracer.total_prompt_tokens,
+                completion_tokens=tracer.total_completion_tokens,
+                total_tokens=total_tokens,
+                estimated_cost_usd=round(estimated_cost, 6),
+            ),
         )
         yield format_sse({
             "step": "complete",
             "detail": f"Pipeline finished in {latency}s",
-            "data": response.model_dump(),       # full response payload for the frontend to render
+            "data": response.model_dump(),       # full response payload for the frontend to render (now includes token_usage automatically)
         })
 
     return StreamingResponse(

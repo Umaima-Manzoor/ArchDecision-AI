@@ -7,6 +7,7 @@ import httpx        # for async HTTP requests as FastAPI is async
 
 from app.config import settings
 from app.schemas import PlannerOutput
+from app.agent.tracer import Tracer       # for optional token tracking
 
 logger = logging.getLogger(__name__)        # easier to dintinguish planner logs from searcher or synthesizer logs
 
@@ -41,7 +42,7 @@ Output schema (return exactly this structure):
 """
 
 
-async def _call_nebius(client: httpx.AsyncClient, user_question: str, model: str) -> str:       # makes the actual HTTP POST request to Nebius Token Factory
+async def _call_nebius(client: httpx.AsyncClient, user_question: str, model: str) -> tuple[str, dict[str, Any]]:       # returns (content, usage_dict) 
     headers = {
         "Authorization": f"Bearer {settings.nebius_api_key}",       # bearer is standard for API keys authentication in HTTP headers
         "Content-Type": "application/json",     # we are sending JSON data in the request body
@@ -64,7 +65,8 @@ async def _call_nebius(client: httpx.AsyncClient, user_question: str, model: str
     response.raise_for_status()             # in case of 4xx / 5xx
     data: dict[str, Any] = response.json()
     content: str = data["choices"][0]["message"]["content"]
-    return content
+    usage: dict[str, Any] = data.get("usage", {})       # grab the token usage receipt from Nebius (empty dict if missing)
+    return content, usage       # CHANGED: return both content and usage
 
 
 def _extract_json(text: str) -> dict[str, Any]:     # cleans the LLm's raw output and extracts the JSON part, removing any markdown code fences if present
@@ -79,7 +81,7 @@ def _extract_json(text: str) -> dict[str, Any]:     # cleans the LLm's raw outpu
     return json.loads(cleaned)
 
 
-async def plan(question: str) -> PlannerOutput:     # Decompose a user question into a structured research plan     (called by main.py)
+async def plan(question: str, tracer: Tracer | None = None) -> PlannerOutput:     # optional tracer parameter at the end
     logger.info("Planner starting for question: %s", question[:80])
     last_error: Exception | None = None     # final error msg has the most recent error for debugging if all attempts fail
 
@@ -89,7 +91,10 @@ async def plan(question: str) -> PlannerOutput:     # Decompose a user question 
 
         try:
             async with httpx.AsyncClient() as client:       # create a new async HTTP client for each attempt to avoid connection issues
-                raw_content = await _call_nebius(client, question, model)
+                raw_content, usage = await _call_nebius(client, question, model)       # unpack the tuple
+
+            if tracer and usage:        # log token usage if tracer exists and API returned usage data
+                tracer.add_usage(usage.get("prompt_tokens", 0), usage.get("completion_tokens", 0))
 
             logger.debug("Raw LLM output: %s", raw_content[:200])
 

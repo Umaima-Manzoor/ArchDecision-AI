@@ -325,6 +325,10 @@ details summary {
   min-width: 90px;
 }
 
+.cost-stat {
+  color: var(--accent);         /* green accent to highlight the cost figure */
+}
+
 @media (max-width: 640px) {
   .input-row {
     flex-direction: column;

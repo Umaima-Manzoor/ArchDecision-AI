@@ -44,3 +44,15 @@ class TestTracer:
         tracer_a.log("planning", "Only in A")
         assert len(tracer_a.get_steps()) == 1
         assert len(tracer_b.get_steps()) == 0       # B is unaffected
+
+    def test_usage_starts_at_zero(self):        # token counters should be zero before any LLM calls
+        tracer = Tracer()
+        assert tracer.total_prompt_tokens == 0
+        assert tracer.total_completion_tokens == 0
+
+    def test_add_usage_accumulates(self):       # simulate planner + synthesizer each adding their token counts
+        tracer = Tracer()
+        tracer.add_usage(800, 120)      # planner: 800 input tokens, 120 output tokens
+        tracer.add_usage(3200, 950)     # synthesizer: 3200 input tokens (sources in prompt), 950 output tokens (matrix)
+        assert tracer.total_prompt_tokens == 4000       # 800 + 3200
+        assert tracer.total_completion_tokens == 1070   # 120 + 950

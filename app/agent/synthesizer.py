@@ -13,6 +13,7 @@ import httpx
 
 from app.config import settings
 from app.schemas import PlannerOutput, SearchResult, TradeOffMatrix
+from app.agent.tracer import Tracer       # for optional token tracking
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ def _build_messages(planner: PlannerOutput, sources: list[SearchResult]) -> list
     ]
 
 
-async def synthesize_matrix(planner_output: PlannerOutput, sources: list[SearchResult]) -> TradeOffMatrix:
+async def synthesize_matrix(planner_output: PlannerOutput, sources: list[SearchResult], tracer: Tracer | None = None) -> TradeOffMatrix:     #  added optional tracer at the end
     """Generate a TradeOffMatrix from planner output and cleaned sources.
     Calls the Nebius LLM with the sources and axes, parses the JSON response
     into a validated TradeOffMatrix Pydantic model.
@@ -133,6 +134,10 @@ async def synthesize_matrix(planner_output: PlannerOutput, sources: list[SearchR
                 response.raise_for_status()
 
             data = response.json()
+
+            if tracer and "usage" in data:        # log token usage if tracer exists and API returned usage
+                tracer.add_usage(data["usage"].get("prompt_tokens", 0), data["usage"].get("completion_tokens", 0))
+
             raw_text = data["choices"][0]["message"]["content"]
 
             # strip markdown code fences if the model wraps JSON in ```json ... ```

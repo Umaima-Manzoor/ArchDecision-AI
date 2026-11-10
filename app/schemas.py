@@ -55,8 +55,16 @@ class TraceStep(BaseModel):      # One step in the visible execution trace
     detail: str
 
 
+class TokenUsage(BaseModel):        # tracks how many tokens the LLM consumed and roughly how much it cost
+    prompt_tokens: int = 0          # tokens we sent to the LLM (system prompt + user question + source text)
+    completion_tokens: int = 0      # tokens the LLM wrote back (the JSON matrix) - this is the expensive part
+    total_tokens: int = 0           # prompt + completion combined, this is the number shown in the UI
+    estimated_cost_usd: float = 0.0     # rough dollar cost calculated in main.py using Nebius pricing
+
+
 class AgentResponse(BaseModel):     # Full response returned to the frontend
     matrix: TradeOffMatrix
     trace: list[TraceStep]
     total_sources: int
     latency_seconds: float      # measured from the time the user submits the question to the time the response is returned (by backend, not including network latency to the frontend)
+    token_usage: TokenUsage | None = None       # optional so existing code that does not pass it still works (keeps all 52 tests green)
