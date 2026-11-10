@@ -2,6 +2,7 @@ const form = document.getElementById("search-form");
 const questionInput = document.getElementById("question");
 const submitBtn = document.getElementById("submit-btn");
 const loadingEl = document.getElementById("loading");
+const loadingStatus = document.getElementById("loading-status");
 const errorEl = document.getElementById("error");
 const errorMessage = document.getElementById("error-message");
 const resultsEl = document.getElementById("results");
@@ -44,6 +45,33 @@ function esc(str) {         // prevents execution of script from the results
   const div = document.createElement("div");
   div.textContent = str;        // plain text not HTML
   return div.innerHTML;
+}
+
+function handleStreamEvent(data) {
+  if (data.step === "error") {
+    errorMessage.textContent = data.detail;
+    showState("error");
+    return;
+  }
+
+  if (data.step === "complete" && data.data) {
+    renderResults(data.data);
+    return;
+  }
+
+  // Update the loading text for intermediate steps
+  const labels = {
+    planning: "Planning research axes...",
+    planned: data.detail,
+    searching: "Searching for evidence...",
+    searched: data.detail,
+    cleaning: "Cleaning and deduplicating sources...",
+    cleaned: data.detail,
+    synthesizing: "Synthesizing trade-off matrix...",
+  };
+
+  const text = labels[data.step] || data.detail;
+  loadingStatus.textContent = text;
 }
 
 function renderResults(data) {
@@ -152,23 +180,39 @@ form.addEventListener("submit", async (e) => {
 
   submitBtn.disabled = true;
   submitBtn.textContent = "Working...";
+  loadingStatus.textContent = "Connecting...";
   showState("loading");
 
   try {
-    const response = await fetch("/api/research", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),       // network understands only text
-    });
+    const url = `/api/research/stream?question=${encodeURIComponent(question)}`;       // encodeURIComponent converts spaces to %20 etc.
+    const response = await fetch(url);
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));      // returns empty object in case failure
-      throw new Error(err.detail || `Server returned ${response.status}`);
+      throw new Error(`Server returned ${response.status}`);
     }
 
-    const data = await response.json();
-    renderResults(data);
+    const reader = response.body.getReader();       // reads the response body chunk by chunk
+    const decoder = new TextDecoder();              // converts raw bytes to JavaScript strings
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });    // indicates more data is coming so hold off onto any incomplete multi-byte chars before decoding
+      const events = buffer.split("\n\n");          // SSE events are separated by double newlines
+      buffer = events.pop();                        // keep any incomplete event in the buffer
+
+      for (const event of events) {
+        if (event.startsWith("data: ")) {
+          const jsonStr = event.slice(6);            // strip the "data: " prefix
+          const data = JSON.parse(jsonStr);
+          handleStreamEvent(data);
+        }
+      }
+    }
   } catch (err) {
+    if (!errorEl.classList.contains("hidden")) return;      // error already shown by handleStreamEvent
     errorMessage.textContent = err.message;     // use textContent instead of innerHTML for safety
     showState("error");
   } finally {

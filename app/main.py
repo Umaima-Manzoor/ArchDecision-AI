@@ -1,11 +1,12 @@
+import json         # SSE needs to manually format - FastAPI can't do that here
 import logging
 import time
 from contextlib import asynccontextmanager      # creates startup/shutdown hooks for FastAPI
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query       # Query to validate url query parameters
 from fastapi.middleware.cors import CORSMiddleware      # for deployment
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse   # sends data in chunks instead of all at once
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -52,6 +53,8 @@ app.add_middleware(
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
+def format_sse(data: dict) -> str:              # formats a dictionary as a Server-Sent Event string
+    return f"data: {json.dumps(data)}\n\n"      # SSE protocol requires "data: " prefix and double newline
 
 @app.get("/health")
 async def health() -> dict[str, str]:       # Health check endpoint for deployment platforms
@@ -127,4 +130,93 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
         trace=tracer.get_steps(),
         total_sources=len(cleaned),
         latency_seconds=latency,
+    )
+
+@app.get("/api/research/stream")      # SSE streaming endpoint for live trace updates
+async def research_stream(question: str = Query(..., min_length=10, max_length=500)):       # question as URL query parameter (SSE only supports GET)
+    """Stream the research pipeline step by step using Server-Sent Events."""
+
+    async def event_generator():
+        tracer = Tracer()
+        start_time = time.time()
+
+        tracer.log("received", f"Question: {question[:80]}")
+
+        # Step 1: Plan
+        tracer.log("planning", "Decomposing question into research axes and sub-queries")
+        yield format_sse({"step": "planning", "detail": "Decomposing question into research axes"})
+        try:
+            planner_output = await plan(question)
+        except Exception as e:
+            tracer.log("error", f"Planner failed: {str(e)[:200]}")
+            yield format_sse({"step": "error", "detail": f"Planner failed: {e}"})
+            return
+        tracer.log(
+            "planned",
+            f"{planner_output.technology_a} vs {planner_output.technology_b}, "
+            f"{len(planner_output.axes)} axes, {len(planner_output.sub_queries)} sub-queries",
+        )
+        yield format_sse({
+            "step": "planned",
+            "detail": f"{planner_output.technology_a} vs {planner_output.technology_b}, "
+                      f"{len(planner_output.axes)} axes, {len(planner_output.sub_queries)} sub-queries",
+        })
+
+        # Step 2: Search
+        tracer.log("searching", f"Running {len(planner_output.sub_queries)} Tavily searches")
+        yield format_sse({"step": "searching", "detail": f"Running {len(planner_output.sub_queries)} Tavily searches"})
+        try:
+            raw_results = await search(planner_output.sub_queries)
+        except Exception as e:
+            tracer.log("error", f"Searcher failed: {str(e)[:200]}")
+            yield format_sse({"step": "error", "detail": f"Searcher failed: {e}"})
+            return
+        tracer.log("searched", f"Retrieved {len(raw_results)} raw results from Tavily")
+        yield format_sse({"step": "searched", "detail": f"Retrieved {len(raw_results)} raw results from Tavily"})
+
+        # Step 3: Clean
+        tracer.log("cleaning", "Deduplicating results and assigning trust tiers")
+        yield format_sse({"step": "cleaning", "detail": "Deduplicating results and assigning trust tiers"})
+        cleaned = clean_and_deduplicate(raw_results)
+        tracer.log("cleaned", f"{len(cleaned)} results after cleaning (from {len(raw_results)} raw)")
+        yield format_sse({"step": "cleaned", "detail": f"{len(cleaned)} results after cleaning (from {len(raw_results)} raw)"})
+
+        # Step 4: Synthesize
+        tracer.log("synthesizing", "Building trade-off matrix with LLM")
+        yield format_sse({"step": "synthesizing", "detail": "Building trade-off matrix with LLM"})
+        try:
+            matrix = await synthesize_matrix(planner_output, cleaned)
+        except Exception as e:
+            tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
+            yield format_sse({"step": "error", "detail": f"Synthesizer failed: {e}"})
+            return
+        tracer.log(
+            "synthesized",
+            f"{len(matrix.cells)} cells, {len(matrix.conflicts)} conflicts, "
+            f"{len(matrix.insufficient_data)} insufficient axes",
+        )
+
+        # Step 5: Complete
+        latency = round(time.time() - start_time, 2)
+        tracer.log("complete", f"Pipeline finished in {latency}s")
+        logger.info("Pipeline complete in %.2fs: %d sources, %d cells", latency, len(cleaned), len(matrix.cells))
+        response = AgentResponse(
+            matrix=matrix,
+            trace=tracer.get_steps(),
+            total_sources=len(cleaned),
+            latency_seconds=latency,
+        )
+        yield format_sse({
+            "step": "complete",
+            "detail": f"Pipeline finished in {latency}s",
+            "data": response.model_dump(),       # full response payload for the frontend to render
+        })
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",     # tells browser it is a stream of events not a normal JSON response
+        headers={
+            "Cache-Control": "no-cache",      # prevents browsers and proxies from caching the stream
+            "Connection": "keep-alive",        # keeps the HTTP connection open for the duration of the stream
+        },
     )
