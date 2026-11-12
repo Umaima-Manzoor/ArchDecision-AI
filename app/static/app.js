@@ -28,10 +28,15 @@ function formatTime(isoString) {
   return d.toLocaleTimeString("en-GB", { hour12: false });      // 24-hour format: HH:MM:SS
 }
 
+function confidenceBar(level) {       // small colored bar that visually encodes confidence level
+  const cls = level === "H" ? "confidence-bar-h" : level === "M" ? "confidence-bar-m" : "confidence-bar-l";
+  return `<span class="confidence-bar ${cls}"></span>`;
+}
+
 function confidenceBadge(level) {
   const cls = level === "H" ? "badge-h" : level === "M" ? "badge-m" : "badge-l";
   const label = level === "H" ? "High" : level === "M" ? "Medium" : "Low";
-  return `<span class="badge ${cls}" title="Confidence: ${label}">${level}</span>`;
+  return `<span class="badge ${cls}" title="Confidence: ${label}">${confidenceBar(level)}${level}</span>`;
 }
 
 function tagBadge(tag) {
@@ -61,13 +66,13 @@ function handleStreamEvent(data) {
 
   // Update the loading text for intermediate steps
   const labels = {
-    planning: "Planning research axes...",
+    planning: "Planning research axes",
     planned: data.detail,
-    searching: "Searching for evidence...",
+    searching: "Searching for evidence",
     searched: data.detail,
-    cleaning: "Cleaning and deduplicating sources...",
+    cleaning: "Cleaning and deduplicating sources",
     cleaned: data.detail,
-    synthesizing: "Synthesizing trade-off matrix...",
+    synthesizing: "Synthesizing trade-off matrix",
   };
 
   const text = labels[data.step] || data.detail;
@@ -77,7 +82,7 @@ function handleStreamEvent(data) {
 function renderResults(data) {
   const m = data.matrix;
 
-  //b uild token usage HTML if available
+  // Build token usage HTML if available
   let tokenHTML = "";
   if (data.token_usage && data.token_usage.total_tokens > 0) {
     const tokens = data.token_usage.total_tokens.toLocaleString();      // adds commas: 2450 -> "2,450"
@@ -165,10 +170,11 @@ function renderResults(data) {
   traceList.innerHTML = traceHTML;
 
   showState("results");
+  resultsEl.classList.add("fade-in");       // trigger the CSS fade-in animation
 }
 
 function renderCell(cell) {
-  if (!cell) return `<span style="color:var(--text-secondary)">No data</span>`;
+  if (!cell) return `<span style="color:var(--text-muted)">No data</span>`;
 
   const sourceTitle = cell.source_title || cell.source_url;
   return `
@@ -189,7 +195,8 @@ form.addEventListener("submit", async (e) => {
 
   submitBtn.disabled = true;
   submitBtn.textContent = "Working...";
-  loadingStatus.textContent = "Connecting...";
+  loadingStatus.textContent = "Connecting";
+  resultsEl.classList.remove("fade-in");       // reset animation so it replays on next query
   showState("loading");
 
   try {

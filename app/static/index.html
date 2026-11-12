@@ -35,7 +35,10 @@
     </form>
 
     <section id="loading" class="state hidden">
-      <p class="loading-text" id="loading-status">Researching your comparison. This typically takes 15 to 30 seconds.</p>
+      <p class="loading-text">
+        <span class="loading-pulse"></span>
+        <span id="loading-status">Researching your comparison</span><span class="loading-dots"></span>
+      </p>
     </section>
 
     <section id="error" class="state hidden">
@@ -47,7 +50,7 @@
     </section>
 
     <section id="results" class="state hidden">
-      <div id="summary-bar"></div>
+      <div id="summary-bar" class="summary-bar"></div>
       <div id="matrix-container"></div>
       <div id="conflicts-container"></div>
       <div id="insufficient-container"></div>
