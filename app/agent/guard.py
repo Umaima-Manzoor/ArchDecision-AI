@@ -30,9 +30,7 @@ INJECTION_PATTERNS: list[tuple[str, ...]] = [       # ... means tuple of any len
     ("output", "your", "prompt"),
 ]
 
-# Attackers often wrap injected instructions in markdown/HTML/role-play
-# delimiters to separate them from the real question. These markers are
-# meaningless in a technology-comparison question, so any match is suspicious.
+# Attackers often wrap injected instructions in markdown/HTML/role-play delimiters to separate them from the real question. These markers are meaningless in a technology-comparison question, so any match is suspicious.
 _DELIMITER_RE = re.compile(
     r"```|<\s*/?\s*(system|user|assistant|instructions?|prompt)\s*>"
     r"|^\s*(system|user|assistant)\s*:\s*"
@@ -40,9 +38,7 @@ _DELIMITER_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-# Hard cap on input length. Beyond this the string is almost certainly not a
-# genuine comparison question and scanning it is wasted work (and the planner
-# schema already enforces 500 chars, so this is a second, independent guard).
+# Hard cap on input length. Beyond this the string is almost certainly not a genuine comparison question and scanning it is wasted work (and the planner schema already enforces 500 chars, so this is a second, independent guard).
 MAX_INPUT_LENGTH = 500
 
 

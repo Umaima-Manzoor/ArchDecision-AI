@@ -52,9 +52,8 @@ app = FastAPI(
 
 # Allow only the origins listed in CORS_ORIGINS. Wildcarding here would expose
 # the endpoint to any website and let it send authenticated requests cross-origin.
-allowed_origins = [
-    o.strip() for o in settings.cors_origins.split(",") if o.strip()
-] or ["*"]
+allowed_origins = [ o.strip() for o in settings.cors_origins.split(",") if o.strip()] or ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins, allow_methods=["*"], allow_headers=["*"],
@@ -100,9 +99,7 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
         planner_output = await plan(request.question, tracer=tracer)
     except Exception as e:
         tracer.log("error", f"Planner failed: {str(e)[:200]}")   # after all retries fail
-        # Return a generic message to the client. The full exception can contain
-        # raw LLM output, provider error bodies, or internal paths - none of
-        # which belong in an HTTP response body.
+        # Return a generic message to the client. The full exception can contain raw LLM output, provider error bodies, or internal paths - none of which belong in an HTTP response body.
         raise HTTPException(status_code=502, detail="Planner failed. See server logs for details.")     # 502 = Bad Gateway
     tracer.log(
         "planned",

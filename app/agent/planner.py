@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)        # easier to dintinguish planner logs
 NEBIUS_BASE_URL = "https://api.tokenfactory.nebius.com/v1"
 TIMEOUT_SECONDS = 30        # enough since Nebius API can take 10-30 sec for large LLMs to respond
 MAX_RETRIES = 3     # balancing reliability and not making the user wait too long
-# Hard cap on question length. The schema already enforces 500 chars, but this
-# bounds the planner directly so a caller that bypasses validation cannot
-# submit an unbounded string that inflates the LLM request (token-bomb DoS).
+# Hard cap on question length. The schema already enforces 500 chars, but this bounds the planner directly so a caller that bypasses validation cannot submit an unbounded string that inflates the LLM request (token-bomb DoS).
 MAX_QUESTION_LENGTH = 500 
 
 PLANNER_SYSTEM_PROMPT = """\
