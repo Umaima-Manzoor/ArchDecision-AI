@@ -67,4 +67,4 @@ class AgentResponse(BaseModel):     # Full response returned to the frontend
     trace: list[TraceStep]
     total_sources: int
     latency_seconds: float      # measured from the time the user submits the question to the time the response is returned (by backend, not including network latency to the frontend)
-    token_usage: TokenUsage | None = None       # optional so existing code that does not pass it still works (keeps all 52 tests green)
+    token_usage: TokenUsage | None = None       # optional so existing code that does not pass it still works

@@ -152,7 +152,6 @@ ArchDecision-AI/
     test_tracer.py
     test_guard.py
     test_keys.py
-  Dockerfile
   requirements.txt
   .env.example
 ```
@@ -164,7 +163,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests/ -v
 ```
 
-59 tests covering all pipeline stages: schema validation, HTML cleaning, trust tier assignment, Jaccard deduplication, source formatting, prompt construction, trace logging, prompt injection defense, and end-to-end planner-searcher integration.
+65 tests covering all pipeline stages: schema validation, HTML cleaning, trust tier assignment, Jaccard deduplication, source formatting, prompt construction, trace logging, prompt injection defense, and end-to-end planner-searcher integration.
 
 ## Environment Variables
 

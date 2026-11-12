@@ -4,7 +4,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.egg-info/
-.omc/
 dist/
 build/
-.DS_Store.omc/
+.DS_Store
+.omc/
