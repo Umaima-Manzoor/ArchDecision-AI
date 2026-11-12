@@ -11,6 +11,7 @@ const matrixContainer = document.getElementById("matrix-container");
 const conflictsContainer = document.getElementById("conflicts-container");
 const insufficientContainer = document.getElementById("insufficient-container");
 const traceList = document.getElementById("trace-list");
+const clearBtn = document.getElementById("clear-btn");
 
 function showState(state) {
   loadingEl.classList.toggle("hidden", state !== "loading");
@@ -20,8 +21,12 @@ function showState(state) {
 
 function resetForm() {
   showState("none");
+  questionInput.value = "";
+  clearBtn.classList.add("hidden");
   questionInput.focus();
 }
+
+clearBtn.addEventListener("click", resetForm);
 
 function formatTime(isoString) {
   const d = new Date(isoString);
@@ -170,6 +175,7 @@ function renderResults(data) {
   traceList.innerHTML = traceHTML;
 
   showState("results");
+  clearBtn.classList.remove("hidden");
   resultsEl.classList.add("fade-in");       // trigger the CSS fade-in animation
 }
 
@@ -198,6 +204,7 @@ form.addEventListener("submit", async (e) => {
   loadingStatus.textContent = "Connecting";
   resultsEl.classList.remove("fade-in");       // reset animation so it replays on next query
   showState("loading");
+  clearBtn.classList.remove("hidden");
 
   try {
     const url = `/api/research/stream?question=${encodeURIComponent(question)}`;       // encodeURIComponent converts spaces to %20 etc.

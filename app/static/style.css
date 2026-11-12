@@ -146,6 +146,18 @@ header h1 {
   transform: none;
 }
 
+.input-row #clear-btn {
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.input-row #clear-btn:hover {
+  background: var(--surface-alt);
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
 .hidden {               /* completely removing element from layout */
   display: none;
 }
