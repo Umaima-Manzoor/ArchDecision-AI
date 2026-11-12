@@ -50,9 +50,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Allow only the origins listed in CORS_ORIGINS. Wildcarding here would expose
+# the endpoint to any website and let it send authenticated requests cross-origin.
+allowed_origins = [
+    o.strip() for o in settings.cors_origins.split(",") if o.strip()
+] or ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    allow_origins=allowed_origins, allow_methods=["*"], allow_headers=["*"],
 )
 
 if STATIC_DIR.exists():
@@ -95,7 +100,10 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
         planner_output = await plan(request.question, tracer=tracer)
     except Exception as e:
         tracer.log("error", f"Planner failed: {str(e)[:200]}")   # after all retries fail
-        raise HTTPException(status_code=502, detail=f"Planner failed: {e}")     # 502 = Bad Gateway
+        # Return a generic message to the client. The full exception can contain
+        # raw LLM output, provider error bodies, or internal paths - none of
+        # which belong in an HTTP response body.
+        raise HTTPException(status_code=502, detail="Planner failed. See server logs for details.")     # 502 = Bad Gateway
     tracer.log(
         "planned",
         f"{planner_output.technology_a} vs {planner_output.technology_b}, "
@@ -108,7 +116,7 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
         raw_results = await search(planner_output.sub_queries)
     except Exception as e:
         tracer.log("error", f"Searcher failed: {str(e)[:200]}")
-        raise HTTPException(status_code=502, detail=f"Searcher failed: {e}")
+        raise HTTPException(status_code=502, detail="Searcher failed. See server logs for details.")
     tracer.log("searched", f"Retrieved {len(raw_results)} raw results from Tavily")
 
     # Step 3: Cleaner deduplicates results and assigns trust tiers
@@ -125,7 +133,7 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
         matrix = await synthesize_matrix(planner_output, cleaned, tracer=tracer)
     except Exception as e:
         tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
-        raise HTTPException(status_code=502, detail=f"Synthesizer failed: {e}")
+        raise HTTPException(status_code=502, detail="Synthesizer failed. See server logs for details.")
     tracer.log(
         "synthesized",
         f"{len(matrix.cells)} cells, {len(matrix.conflicts)} conflicts, "
@@ -177,7 +185,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
             planner_output = await plan(question, tracer=tracer)
         except Exception as e:
             tracer.log("error", f"Planner failed: {str(e)[:200]}")
-            yield format_sse({"step": "error", "detail": f"Planner failed: {e}"})
+            yield format_sse({"step": "error", "detail": "Planner failed. See server logs for details."})
             return
         tracer.log(
             "planned",
@@ -197,7 +205,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
             raw_results = await search(planner_output.sub_queries)
         except Exception as e:
             tracer.log("error", f"Searcher failed: {str(e)[:200]}")
-            yield format_sse({"step": "error", "detail": f"Searcher failed: {e}"})
+            yield format_sse({"step": "error", "detail": "Searcher failed. See server logs for details."})
             return
         tracer.log("searched", f"Retrieved {len(raw_results)} raw results from Tavily")
         yield format_sse({"step": "searched", "detail": f"Retrieved {len(raw_results)} raw results from Tavily"})
@@ -216,7 +224,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
             matrix = await synthesize_matrix(planner_output, cleaned, tracer=tracer)
         except Exception as e:
             tracer.log("error", f"Synthesizer failed: {str(e)[:200]}")
-            yield format_sse({"step": "error", "detail": f"Synthesizer failed: {e}"})
+            yield format_sse({"step": "error", "detail": "Synthesizer failed. See server logs for details."})
             return
         tracer.log(
             "synthesized",

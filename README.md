@@ -25,7 +25,7 @@ No fabricated benchmarks. No invented URLs. Every claim links to a real source.
 | Search | Tavily Search API |
 | Validation | Pydantic v2 |
 | HTTP | httpx (async) |
-| Deployment | Docker + Qoddi |
+| Deployment | Docker (local) |
 
 ## Architecture
 
@@ -138,6 +138,7 @@ ArchDecision-AI/
       cleaner.py       # Step 3: Dedup + trust tiers
       synthesizer.py   # Step 4: LLM matrix generation
       tracer.py        # Step 5: Execution logging
+      guard.py         # Input validation and prompt injection defense
     static/
       index.html       # Frontend SPA
     config.py          # Settings (Pydantic BaseSettings)
@@ -149,6 +150,7 @@ ArchDecision-AI/
     test_cleaner.py
     test_synthesizer.py
     test_tracer.py
+    test_guard.py
     test_keys.py
   Dockerfile
   requirements.txt
@@ -162,7 +164,7 @@ pip install -r requirements-dev.txt
 python -m pytest tests/ -v
 ```
 
-52 tests covering all pipeline stages: schema validation, HTML cleaning, trust tier assignment, Jaccard deduplication, source formatting, prompt construction, trace logging, and end-to-end planner-searcher integration.
+59 tests covering all pipeline stages: schema validation, HTML cleaning, trust tier assignment, Jaccard deduplication, source formatting, prompt construction, trace logging, prompt injection defense, and end-to-end planner-searcher integration.
 
 ## Environment Variables
 
@@ -170,6 +172,7 @@ python -m pytest tests/ -v
 |----------|----------|-------------|
 | `NEBIUS_API_KEY` | Yes | Nebius Token Factory bearer token |
 | `TAVILY_API_KEY` | Yes | Tavily search API key |
+| `CORS_ORIGINS` | No | Comma-separated list of allowed origins. Leave blank to disable cross-origin requests entirely. |
 
 ## License
 

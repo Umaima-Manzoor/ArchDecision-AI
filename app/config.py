@@ -8,9 +8,8 @@ class Settings(BaseSettings):           # Application configuration loaded from 
 
     nebius_api_key: str = ""        # pydantic gives error for str = None
     tavily_api_key: str = ""
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
-    langfuse_host: str = "https://cloud.langfuse.com"
+    # Comma-separated list of allowed CORS origins. Leave blank to disable cross-origin requests entirely.
+    cors_origins: str = "http://localhost:8000,http://127.0.0.1:8000"
     nebius_model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507"
     nebius_fallback_model: str = "google/gemma-3-27b-it"
 
@@ -28,10 +27,6 @@ class Settings(BaseSettings):           # Application configuration loaded from 
                 f"Copy .env.example to .env and fill in your keys."
             )
         logger.info("All required API keys loaded successfully")
-
-    @property
-    def langfuse_enabled(self) -> bool:     # Return True if Langfuse keys are configured
-        return bool(self.langfuse_public_key and self.langfuse_secret_key)
 
 
 settings = Settings()

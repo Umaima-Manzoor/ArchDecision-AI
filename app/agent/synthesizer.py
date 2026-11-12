@@ -70,31 +70,31 @@ def _build_messages(planner: PlannerOutput, sources: list[SearchResult]) -> list
         f"Sources ({len(sources)} total):\n"
         f"{formatted_sources}\n\n"
         "Generate the TradeOffMatrix as JSON with this exact structure:\n"
-        "{\n"
-        '  "technology_a": "' + planner.technology_a + '",\n'       # JSON contains {} which conflict with f-string syntax so we use +
-        '  "technology_b": "' + planner.technology_b + '",\n'
-        '  "cells": [\n'
-        '    {\n'
-        '      "axis": "Performance",\n'
-        '      "technology": "' + planner.technology_a + '",\n'
-        '      "claim": "Specific factual claim about performance",\n'
-        '      "source_url": "exact URL from sources above",\n'
-        '      "source_title": "title of the source",\n'
-        '      "confidence": "H",\n'
-        '      "tag": "FACT"\n'
-        '    }\n'
-        '  ],\n'
-        '  "conflicts": [\n'
-        '    {\n'
-        '      "axis": "Performance",\n'
-        '      "description": "Source A says X but Source B says Y",\n'
-        '      "source_a_url": "url",\n'
-        '      "source_b_url": "url"\n'
-        '    }\n'
-        '  ],\n'
-        '  "insufficient_data": ["AxisName"]\n'
-        "}\n\n"
-        f"Generate cells for ALL combinations: {len(planner.axes)} axes x 2 technologies = {len(planner.axes) * 2} cells."
+        f'''{{
+  "technology_a": "{planner.technology_a}",
+  "technology_b": "{planner.technology_b}",
+  "cells": [
+    {{
+      "axis": "Performance",
+      "technology": "{planner.technology_a}",
+      "claim": "Specific factual claim about performance",
+      "source_url": "exact URL from sources above",
+      "source_title": "title of the source",
+      "confidence": "H",
+      "tag": "FACT"
+    }}
+  ],
+  "conflicts": [
+    {{
+      "axis": "Performance",
+      "description": "Source A says X but Source B says Y",
+      "source_a_url": "url",
+      "source_b_url": "url"
+    }}
+  ],
+  "insufficient_data": ["AxisName"]
+}}'''
+        f"\n\nGenerate cells for ALL combinations: {len(planner.axes)} axes x 2 technologies = {len(planner.axes) * 2} cells."
     )
 
     return [
