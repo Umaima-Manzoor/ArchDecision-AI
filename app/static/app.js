@@ -211,7 +211,12 @@ form.addEventListener("submit", async (e) => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Server returned ${response.status}`);
+      let detail = `Server returned ${response.status}`;
+      try {
+        const errBody = await response.json();
+        if (errBody.detail) detail = errBody.detail;
+      } catch (_) {}
+      throw new Error(detail);
     }
 
     const reader = response.body.getReader();       // reads the response body chunk by chunk
