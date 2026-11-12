@@ -16,6 +16,7 @@ from app.agent.searcher import search                   # Tavily calls for each 
 from app.agent.cleaner import clean_and_deduplicate     # cleaning, deduplicating, tiers
 from app.agent.synthesizer import synthesize_matrix     # Nebius build the matrix from sources
 from app.agent.tracer import Tracer                     # logging each pipeline step 
+from app.agent.guard import check_injection             # prompt injection defense
 
 logging.basicConfig(
     level=logging.INFO,     # minimum level to log (DEBUG, INFO, WARNING, ERROR, CRITICAL)  - everything other than DEUG is logged
@@ -76,6 +77,13 @@ async def root() -> FileResponse:           # an HTTP response that returns a fi
 @app.post("/api/research", response_model=AgentResponse)        # when someone sends a POST request to /api/research, run this function and return an AgentResponse schema
 async def research(request: QueryRequest) -> AgentResponse:     # Run the full research agent pipeline
     logger.info("Research request received: %s", request.question[:80])
+
+    # Check for prompt injection before running the pipeline
+    injection = check_injection(request.question)
+    if injection:
+        logger.warning("Prompt injection blocked: %s (pattern: %s)", request.question[:80], injection)
+        raise HTTPException(status_code=400, detail="Your query appears to contain instructions that conflict with the agent's purpose. Please ask a technology comparison question instead.")
+
     tracer = Tracer()           # new tracer for each request
     start_time = time.time()
 
@@ -150,6 +158,12 @@ async def research(request: QueryRequest) -> AgentResponse:     # Run the full r
 async def research_stream(question: str = Query(..., min_length=10, max_length=500)):       # question as URL query parameter (SSE only supports GET)
     """Stream the research pipeline step by step using Server-Sent Events."""
 
+    # Check for prompt injection before starting the stream
+    injection = check_injection(question)
+    if injection:
+        logger.warning("Prompt injection blocked: %s (pattern: %s)", question[:80], injection)
+        raise HTTPException(status_code=400, detail="Your query appears to contain instructions that conflict with the agent's purpose. Please ask a technology comparison question instead.")
+
     async def event_generator():
         tracer = Tracer()
         start_time = time.time()
@@ -160,7 +174,7 @@ async def research_stream(question: str = Query(..., min_length=10, max_length=5
         tracer.log("planning", "Decomposing question into research axes and sub-queries")
         yield format_sse({"step": "planning", "detail": "Decomposing question into research axes"})
         try:
-            planner_output = await plan(question, tracer=tracer)   
+            planner_output = await plan(question, tracer=tracer)
         except Exception as e:
             tracer.log("error", f"Planner failed: {str(e)[:200]}")
             yield format_sse({"step": "error", "detail": f"Planner failed: {e}"})
