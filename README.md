@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="static/favicon.svg" width="38" height="38" alt="ArchDecision Logo" style="vertical-align: middle; margin-right: 8px;"> ArchDecision AI
+# <img src="app/static/favicon.svg" width="38" height="38" alt="ArchDecision Logo" style="vertical-align: middle; margin-right: 8px;"> ArchDecision AI
 
 **Compare technologies with sourced, verifiable evidence.**
 
