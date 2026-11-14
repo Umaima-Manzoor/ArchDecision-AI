@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 ArchDecision AI
+# <img src="static/favicon.svg" width="38" height="38" alt="ArchDecision Logo" style="vertical-align: middle; margin-right: 8px;"> ArchDecision AI
 
 **Compare technologies with sourced, verifiable evidence.**
 
@@ -13,18 +13,16 @@
 
 An autonomous research agent that produces **Architecture Trade-Off Matrices** for software engineers. Every claim is backed by a real source. Every conflict is flagged. Nothing is fabricated.
 
-Built for the **[ODSC AI x Nebius Hackathon](https://odsc.com)**.
-
-[Watch the Demo Video 🎥](#) <!-- Replace # with your YouTube/Loom link later -->
+[Watch the Demo Video 🎥](#)
 
 </div>
 
 <br>
 
-> **Note:** To see the pipeline in action, [watch the 60-second demo](#).
+> **Note:** To see the pipeline in action, [watch the 60-second demo video](#).
 
 <details open>
-<summary><b>📸 Sneak Peek (Click to toggle)</b></summary>
+<summary><b>📸 Product Preview (Click to toggle)</b></summary>
 <br>
 
 | 🔍 Live Streaming Pipeline | 📊 Interactive Matrix |
@@ -41,9 +39,9 @@ Built for the **[ODSC AI x Nebius Hackathon](https://odsc.com)**.
 
 Software engineers waste hours comparing technologies across scattered blog posts, outdated benchmarks, and vendor marketing pages. ArchDecision does the heavy lifting:
 
-*   **Ask** a comparison question (e.g., "PostgreSQL vs MongoDB for real-time analytics")
-*   **Watch** the agent plan axes, search evidence, clean sources, and synthesize a matrix in ~30 seconds.
-*   **Decide** using visual confidence badges, inline citations, and conflict warnings.
+* **Ask** a comparison question (e.g., "PostgreSQL vs MongoDB for real-time analytics").
+* **Watch** the agent plan axes, search evidence, clean sources, and synthesize a matrix in ~30 seconds.
+* **Decide** using visual confidence badges, inline citations, and conflict warnings.
 
 ❌ No hallucinated benchmarks.  
 ❌ No invented URLs.  
@@ -78,8 +76,8 @@ graph TD;
     class Searcher,Sub1,Sub2,Sub3 search;
 ```
 
-### 🥇 The Trust Tier System
-The Cleaner automatically ranks sources by domain credibility before they ever reach the final LLM synthesis:
+### 🥇 Trust Tier Verification
+The Cleaner automatically ranks sources by domain credibility before they reach the synthesis layer:
 
 | Tier | Trust Level | Source Types | Examples |
 |:---:|---|---|---|
@@ -91,15 +89,15 @@ The Cleaner automatically ranks sources by domain credibility before they ever r
 
 ---
 
-## 🏆 Hackathon Rubric Alignment
+## ⚡ Core Capabilities
 
-| Criterion | Weight | How ArchDecision Scores |
-|---|:---:|---|
-| **Sourced & Verifiable** | `30%` | Every matrix cell cites an exact URL. Assigns Confidence (H/M/L) and Tags (FACT/INFERENCE). Flags conflicting credible sources. |
-| **End-to-End Pipeline** | `25%` | Full path: Text Input ➡️ 5-Step Pipeline ➡️ Structured Matrix ➡️ SSE UI. Tested by 65 automated pytest assertions. |
-| **Usefulness** | `20%` | Solves the "tab fatigue" problem for devs. Adapts axes dynamically (no fixed templates). Tracks exact token cost (~$0.002/query). |
-| **Agent Design** | `15%` | Multi-step architecture (Plan ➡️ Search ➡️ Clean ➡️ Synthesize). Includes model fallbacks, backoff retries, and injection defense. |
-| **Token Factory + Tavily**| `10%` | Uses `Qwen3-235B` (Primary) & `Gemma-3-27B` (Fallback) via Nebius. Uses Tavily for deep web extraction. |
+| Feature | Implementation | Benefit |
+|---|---|---|
+| **Verifiable Citations** | Every claim links directly to its origin URL. Assigns Confidence (High/Medium/Low) and tags claims (Fact/Inference). | Complete transparency without hallucinated URLs. |
+| **Live SSE Streaming** | Real-time Server-Sent Events push execution step updates to the UI as they complete. | Instant visual feedback during agent reasoning. |
+| **Dynamic Axis Planning** | Query Planner extracts dynamic evaluation criteria tailored to the technologies queried. | Removes static template constraints. |
+| **Multi-Model Resilience** | Primary inference via `Qwen3-235B` with automatic fallback to `Gemma-3-27B`. | High reliability and operational stability. |
+| **Injection Guard** | Regex and length boundary filters neutralize prompt injection attempts before pipeline execution. | Reliable security against malicious inputs. |
 
 ---
 
@@ -108,9 +106,9 @@ The Cleaner automatically ranks sources by domain credibility before they ever r
 <details>
 <summary><b>1. Prerequisites (Click to expand)</b></summary>
 
-*   **Python 3.12+**
-*   A **[Nebius Token Factory](https://console.nebius.ai)** API key (free trial credits work perfectly).
-*   A **[Tavily](https://tavily.com)** API key (1,000 free searches/month).
+* **Python 3.12+**
+* A **[Nebius Token Factory](https://console.nebius.ai)** API key.
+* A **[Tavily](https://tavily.com)** API key.
 </details>
 
 <details open>
@@ -132,7 +130,7 @@ pip install -r requirements.txt
 # Setup environment variables
 cp .env.example .env
 ```
-👉 *Open `.env` and paste your `NEBIUS_API_KEY` and `TAVILY_API_KEY`.*
+👉 *Open `.env` and configure your `NEBIUS_API_KEY` and `TAVILY_API_KEY`.*
 </details>
 
 <details open>
@@ -141,27 +139,25 @@ cp .env.example .env
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
-Open **[http://localhost:8000](http://localhost:8000)** to use the UI!
+Open **[http://localhost:8000](http://localhost:8000)** to view the interface.
 </details>
 
 ---
 
 ## 💸 Cost Efficiency
 
-By filtering noise in the `Cleaner` layer and using strict prompts, token waste is minimized. 
+Filtering raw content in the `Cleaner` module minimizes token overhead before LLM processing:
 
-| Model | Input Cost | Output Cost | Typical Query |
+| Model | Input Cost | Output Cost | Average Query Cost |
 |---|---|---|---|
 | **Qwen3-235B-A22B** | $0.20 / 1M | $0.60 / 1M | ~7,000 tokens ≈ **$0.002** |
 | **Gemma-3-27B** *(Fallback)* | $0.10 / 1M | $0.30 / 1M | ~7,000 tokens ≈ **$0.001** |
-
-> *With the standard Nebius trial credits, you can run roughly **400 full comparisons** for free.*
 
 ---
 
 ## 🧪 Test Coverage
 
-ArchDecision includes a robust test suite covering schema validation, HTML cleaning, Jaccard deduplication, prompt injection, and End-to-End integration.
+ArchDecision includes test suites covering schema validation, HTML parsing, Jaccard deduplication, prompt injection defense, and End-to-End integration.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -209,7 +205,7 @@ Run the full pipeline synchronously.
 <details>
 <summary><b><code>GET /api/research/stream</code> (SSE Streaming)</b></summary>
 
-Same pipeline, but streams Server-Sent Events for live UI updates.
+Stream live Server-Sent Events to track pipeline execution progress.
 
 ```text
 GET /api/research/stream?question=PostgreSQL+vs+MongoDB
@@ -219,6 +215,6 @@ GET /api/research/stream?question=PostgreSQL+vs+MongoDB
 ---
 
 <div align="center">
-  <p>Built with ❤️ for the ODSC Hackathon</p>
+  <p>ArchDecision AI &bull; Open Source Software</p>
   <p>Released under the <a href="LICENSE">MIT License</a>.</p>
 </div>
