@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="app/static/favicon.svg" width="38" height="38" alt="ArchDecision Logo" style="vertical-align: middle; margin-right: 8px;"> ArchDecision AI
+# <img src="static/favicon.svg" width="38" height="38" alt="ArchDecision Logo" style="vertical-align: middle; margin-right: 8px;"> ArchDecision AI
 
 **Compare technologies with sourced, verifiable evidence.**
 
@@ -13,13 +13,13 @@
 
 An autonomous research agent that produces **Architecture Trade-Off Matrices** for software engineers. Every claim is backed by a real source. Every conflict is flagged. Nothing is fabricated.
 
-[Watch the Demo Video 🎥](#)
+[Watch the Demo Video 🎥](https://youtu.be/bzMKmqnU5Rg)
 
 </div>
 
 <br>
 
-> **Note:** To see the pipeline in action, [watch the 60-second demo video](#).
+> **Note:** To see the pipeline in action, [watch the demo video on YouTube](https://youtu.be/bzMKmqnU5Rg).
 
 <details open>
 <summary><b>📸 Product Preview (Click to toggle)</b></summary>
