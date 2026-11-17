@@ -23,6 +23,7 @@ function resetForm() {
   showState("none");
   questionInput.value = "";
   clearBtn.classList.add("hidden");
+  clearBtn.disabled = false;
   questionInput.focus();
 }
 
@@ -200,6 +201,7 @@ form.addEventListener("submit", async (e) => {
   if (question.length < 10) return;
 
   submitBtn.disabled = true;
+  clearBtn.disabled = true;
   submitBtn.textContent = "Working...";
   loadingStatus.textContent = "Connecting";
   resultsEl.classList.remove("fade-in");       // reset animation so it replays on next query
@@ -245,6 +247,7 @@ form.addEventListener("submit", async (e) => {
     showState("error");
   } finally {
     submitBtn.disabled = false;
+    clearBtn.disabled = false;
     submitBtn.textContent = "Analyze";
   }
 });
